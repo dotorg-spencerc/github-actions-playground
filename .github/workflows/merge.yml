@@ -8,10 +8,25 @@ on:
 
 jobs:
   RunE2E:
-    name: DeployToDev
+    name: RunE2E
     runs-on: ubuntu-latest
 
-    if: github.event.pull_request.merged == true
+    if: always() &&
+      github.event.pull_request.draft == false &&
+      (
+      (
+      github.event_name == 'pull_request' &&
+      needs.RunE2E.result == 'success' &&
+      github.event_name == 'pull_request' &&
+      contains(github.event.pull_request.labels.*.name, 'ready') == true
+      ) ||
+      (
+      github.event_name == 'pull_request' &&
+      needs.RunE2E.result == 'skipped' &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'ready'
+      )
+      )
 
     steps:
       # INFORMATIONAL
