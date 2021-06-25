@@ -1,0 +1,10 @@
+{
+  "extends": [
+    "react-app",
+    "react-app/jest"
+  ],
+  "globals": {
+    "Cypress": true,
+    "cy": true
+  }
+}
