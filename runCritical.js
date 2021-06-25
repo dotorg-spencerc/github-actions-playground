@@ -7,7 +7,7 @@ const path = require('path');
 
 cypress.run({
   spec: [
-    path.join(__dirname, '../cypress/integration/App.spec.js'),
+    path.join(__dirname, './cypress/integration/App.spec.js'),
   ]
 })
 .then((results) => {
