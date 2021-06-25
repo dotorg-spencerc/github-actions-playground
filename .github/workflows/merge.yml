@@ -155,7 +155,7 @@ jobs:
       )
 
     steps:
-      - uses: reitermarkus/automerge@v2
+      - uses: reitermarkus/automerge
         with:
           token: ${{ secrets.PAT }}
           merge-method: rebase
