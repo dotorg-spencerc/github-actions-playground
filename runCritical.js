@@ -5,6 +5,7 @@
 const cypress = require('cypress');
 const path = require('path');
 
+console.log(path.join(__dirname, './cypress/integration/App.spec.js'));
 cypress.run({
   spec: [
     path.join(__dirname, './cypress/integration/App.spec.js'),
