@@ -128,38 +128,14 @@ jobs:
         run: |
           yarn build
 
-      # Sync build directory to S3
-      - id: Echo
-        name: Echo
-        run: |
-          echo 'done!'
-
-  AutoMerge:
-    name: AutoMerge
-    runs-on: ubuntu-latest
-
-    needs:
-      - RunE2E
-      - DeployToDev
-
-    if: always() &&
-      github.event.pull_request.draft == false &&
-      (
-      (
-      github.event_name == 'pull_request' &&
-      needs.RunE2E.result == 'success' &&
-      needs.DeployToDev.result == 'success' &&
-      github.event_name == 'pull_request' &&
-      contains(github.event.pull_request.labels.*.name, 'ready') == true
-      )
-      )
-
-    steps:
-      - uses: reitermarkus/automerge@v1
-        with:
-          token: ${{ secrets.PAT }}
-          merge-method: rebase
-          do-not-merge-labels: never-merge
-          required-labels: ready
-          pull-request: ${{ github.event.inputs.pull-request }}
-          dry-run: true
+      # if all DeployToDev checks are successful and the labels are set right, merge PR
+      - id: AutoMergePR
+        name: AutoMergePR
+        if:
+          contains(github.event.pull_request.labels.*.name, 'NOMERGE') == false
+        uses: pascalgn/automerge-action@v0.13.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+          MERGE_LABELS: ready
+          MERGE_METHOD: merge
+          MERGE_METHOD_LABELS: autosquash=squash
