@@ -34,6 +34,22 @@ jobs:
         name: CheckoutRepo
         uses: actions/checkout@v2
 
+      # checkout main as a branch so we can compare our changed files against it.
+      - id: CheckoutMainBranch
+        name: CheckoutMainBranch
+        run: |
+          git fetch --no-tags --depth=1000 origin main
+
+      - id: GetDiffFiles
+        name: GetDiffFiles
+        uses: technote-space/get-diff-action@v4
+        with:
+          PATTERNS: |
+            src/**/*.+(js|jsx)
+            cypress/**/*.js
+          FILES: |
+            yarn.lock
+
       # Install node in the runner
       - id: InstallNode
         name: InstallNode
@@ -48,18 +64,6 @@ jobs:
         uses: bahmutov/npm-install@HEAD
         with:
           useRollingCache: true
-
-      - id: GetDiffFiles
-        name: GetDiffFiles
-        uses: technote-space/get-diff-action@v4
-        with:
-          PATTERNS: |
-            src/**/*.+(js|jsx)
-            src/*.+(js|jsx)
-            cypress/**/*.js
-          FILES: |
-            yarn.lock
-            package.json
 
         # Install NPM dependencies, cache them correctly
         # and run all Cypress tests
