@@ -22,7 +22,7 @@ cypress.run({
   process.exit(results.totalFailed)
 })
 .catch((err) => {
-  console.error(err.message)
+  console.error('here', err.message)
   process.exit(1)
 });
 

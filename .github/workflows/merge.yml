@@ -59,9 +59,10 @@ jobs:
         name: RunCypress
         uses: cypress-io/github-action@v2
         with:
-          start: npm run critical-e2e
+          start: npm start
           wait-on: 'http://localhost:3000'
           wait-on-timeout: 120
+          command: npm run critical-e2e
 
   DeployToDev:
     name: DeployToDev
