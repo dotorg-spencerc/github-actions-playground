@@ -55,9 +55,11 @@ jobs:
         with:
           PATTERNS: |
             src/**/*.+(js|jsx)
+            src/*.+(js|jsx)
             cypress/**/*.js
           FILES: |
             yarn.lock
+            package.json
 
         # Install NPM dependencies, cache them correctly
         # and run all Cypress tests
