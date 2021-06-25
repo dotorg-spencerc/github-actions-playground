@@ -3,7 +3,6 @@ name: RunE2EAndDeployToDev
 on:
   pull_request:
     types:
-      - closed
       - labeled
 
 jobs:
@@ -40,16 +39,6 @@ jobs:
         run: |
           git fetch --no-tags --depth=1000 origin main
 
-      - id: GetDiffFiles
-        name: GetDiffFiles
-        uses: technote-space/get-diff-action@v4
-        with:
-          PATTERNS: |
-            src/**/*.+(js|jsx)
-            cypress/**/*.js
-          FILES: |
-            yarn.lock
-
       # Install node in the runner
       - id: InstallNode
         name: InstallNode
@@ -60,7 +49,6 @@ jobs:
       # Install and cache node modules
       - id: InstallNodeModules
         name: InstallNodeModules
-        if: env.GIT_DIFF_FILTERED || env.MATCHED_FILES
         uses: bahmutov/npm-install@HEAD
         with:
           useRollingCache: true
@@ -69,7 +57,6 @@ jobs:
         # and run all Cypress tests
       - id: RunCypress
         name: RunCypress
-        if: env.GIT_DIFF_FILTERED || env.MATCHED_FILES
         uses: cypress-io/github-action@v2
         with:
           start: npm run critical-e2e
