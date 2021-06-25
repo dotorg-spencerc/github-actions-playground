@@ -134,19 +134,19 @@ jobs:
         run: |
           echo 'done!'
 
-    AutoMerge:
-      runs-on: ubuntu-latest
+  AutoMerge:
+    runs-on: ubuntu-latest
 
-      needs:
-        - RunE2E
-        - DeployToDev
+    needs:
+      - RunE2E
+      - DeployToDev
 
-      steps:
-        - uses: reitermarkus/automerge@v2
-          with:
-            token: ${{ secrets.PAT }}
-            merge-method: rebase
-            do-not-merge-labels: never-merge
-            required-labels: ready
-            pull-request: ${{ github.event.inputs.pull-request }}
-            dry-run: true
+    steps:
+      - uses: reitermarkus/automerge@v2
+        with:
+          token: ${{ secrets.PAT }}
+          merge-method: rebase
+          do-not-merge-labels: never-merge
+          required-labels: ready
+          pull-request: ${{ github.event.inputs.pull-request }}
+          dry-run: true
