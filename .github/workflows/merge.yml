@@ -1,0 +1,141 @@
+name: RunE2EAndDeployToDev
+
+on:
+  pull_request:
+    types:
+      - labeled
+
+jobs:
+  RunE2E:
+    name: RunE2E
+    runs-on: ubuntu-latest
+
+    if: always() &&
+      github.event.pull_request.draft == false &&
+      (
+      (
+      github.event_name == 'pull_request' &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'ready'
+      )
+      )
+
+    steps:
+      # INFORMATIONAL
+      - id: DumpGithubContext
+        name: DumpGithubContext
+        env:
+          GITHUB_CONTEXT: ${{ toJSON(github) }}
+        run: echo "$GITHUB_CONTEXT"
+
+      # checkout repo for the particular commit SHA
+      - id: CheckoutRepo
+        name: CheckoutRepo
+        uses: actions/checkout@v2
+
+      # checkout main as a branch so we can compare our changed files against it.
+      - id: CheckoutMainBranch
+        name: CheckoutMainBranch
+        run: |
+          git fetch --no-tags --depth=1000 origin main
+
+      # Install node in the runner
+      - id: InstallNode
+        name: InstallNode
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14.x'
+
+      # Install and cache node modules
+      - id: InstallNodeModules
+        name: InstallNodeModules
+        uses: bahmutov/npm-install@HEAD
+        with:
+          useRollingCache: true
+
+        # Install NPM dependencies, cache them correctly
+        # and run all Cypress tests
+      - id: RunCypress
+        name: RunCypress
+        uses: cypress-io/github-action@v2
+        with:
+          start: npm start
+          wait-on: 'http://localhost:3000'
+          wait-on-timeout: 120
+          command: npm run critical-e2e
+
+#      - id: CypressFailure
+#        name: CypressFailure
+#        uses: actions-ecosystem/action-remove-labels@v1
+#        if: failure()
+#        with:
+#          labels: |
+#            deployment-failed
+
+  DeployToDev:
+    name: DeployToDev
+    runs-on: ubuntu-latest
+
+    needs:
+      - RunE2E
+
+    if: always() &&
+      github.event.pull_request.draft == false &&
+      (
+      (
+      github.event_name == 'pull_request' &&
+      needs.RunE2E.result == 'success' &&
+      github.event_name == 'pull_request' &&
+      contains(github.event.pull_request.labels.*.name, 'ready') == true
+      ) ||
+      (
+      github.event_name == 'pull_request' &&
+      needs.RunE2E.result == 'skipped' &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'ready'
+      )
+      )
+
+    steps:
+      # INFORMATIONAL
+      - id: DumpGithubContext
+        name: DumpGitHubContext
+        env:
+          GITHUB_CONTEXT: ${{ toJSON(github) }}
+        run: echo "$GITHUB_CONTEXT"
+
+      # checkout repo for the particular commit SHA
+      - id: CheckoutRepo
+        name: CheckoutRepo
+        uses: actions/checkout@v2
+      # Install node in the runner
+      - id: InstallNode
+        name: InstallNode
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14.x'
+
+      # Install and cache node modules
+      - id: InstallNodeModules
+        name: InstallNodeModules
+        uses: bahmutov/npm-install@HEAD
+        with:
+          useRollingCache: true
+
+      # Build the client
+      - id: BuildClient
+        name: BuildClient
+        run: |
+          yarn build
+
+      # if all DeployToDev checks are successful and the labels are set right, merge PR
+      - id: AutoMergePR
+        name: AutoMergePR
+        if:
+          contains(github.event.pull_request.labels.*.name, 'NOMERGE') == false
+        uses: pascalgn/automerge-action@v0.13.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+          MERGE_LABELS: ready
+          MERGE_METHOD: merge
+          MERGE_METHOD_LABELS: autosquash=squash
