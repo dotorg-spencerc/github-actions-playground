@@ -1,0 +1,125 @@
+name: RunE2EAndDeployToDev
+
+on:
+  pull_request:
+    types:
+      - closed
+      - labeled
+
+jobs:
+  RunE2E:
+    name: DeployToDev
+    runs-on: ubuntu-latest
+
+    if: github.event.pull_request.merged == true
+
+    steps:
+      # INFORMATIONAL
+      - id: DumpGithubContext
+        name: DumpGithubContext
+        env:
+          GITHUB_CONTEXT: ${{ toJSON(github) }}
+        run: echo "$GITHUB_CONTEXT"
+
+      # checkout repo for the particular commit SHA
+      - id: CheckoutRepo
+        name: CheckoutRepo
+        uses: actions/checkout@v2
+
+      # Install node in the runner
+      - id: InstallNode
+        name: InstallNode
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14.x'
+
+      # Install and cache node modules
+      - id: InstallNodeModules
+        name: InstallNodeModules
+        if: env.GIT_DIFF_FILTERED || env.MATCHED_FILES
+        uses: bahmutov/npm-install@HEAD
+        with:
+          useRollingCache: true
+
+      - id: GetDiffFiles
+        name: GetDiffFiles
+        uses: technote-space/get-diff-action@v4
+        with:
+          PATTERNS: |
+            src/**/*.+(js|jsx)
+            cypress/**/*.js
+          FILES: |
+            yarn.lock
+
+        # Install NPM dependencies, cache them correctly
+        # and run all Cypress tests
+      - id: RunCypress
+        name: RunCypress
+        if: env.GIT_DIFF_FILTERED || env.MATCHED_FILES
+        uses: cypress-io/github-action@v2
+        with:
+          start: npm run critical-e2e
+          wait-on: 'http://localhost:3000'
+          wait-on-timeout: 120
+
+  DeployToDev:
+    name: DeployToDev
+    runs-on: ubuntu-latest
+
+    needs:
+      - RunE2E
+
+    if: always() &&
+      github.event.pull_request.draft == false &&
+      (
+      (
+      github.event_name == 'pull_request' &&
+      needs.RunE2E.result == 'success' &&
+      github.event_name == 'pull_request' &&
+      contains(github.event.pull_request.labels.*.name, 'ready') == true
+      ) ||
+      (
+      github.event_name == 'pull_request' &&
+      needs.RunE2E.result == 'skipped' &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'ready'
+      )
+      )
+
+    steps:
+      # INFORMATIONAL
+      - id: DumpGithubContext
+        name: DumpGitHubContext
+        env:
+          GITHUB_CONTEXT: ${{ toJSON(github) }}
+        run: echo "$GITHUB_CONTEXT"
+
+      # checkout repo for the particular commit SHA
+      - id: CheckoutRepo
+        name: CheckoutRepo
+        uses: actions/checkout@v2
+      # Install node in the runner
+      - id: InstallNode
+        name: InstallNode
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14.x'
+
+      # Install and cache node modules
+      - id: InstallNodeModules
+        name: InstallNodeModules
+        uses: bahmutov/npm-install@HEAD
+        with:
+          useRollingCache: true
+
+      # Build the client
+      - id: BuildClient
+        name: BuildClient
+        run: |
+          yarn build
+
+      # Sync build directory to S3
+      - id: Echo
+        name: Echo
+        run: |
+          echo 'done!'
