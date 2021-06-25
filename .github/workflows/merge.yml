@@ -76,6 +76,7 @@ jobs:
 
     needs:
       - RunE2E
+      - LintAndUnitTests
 
     if: always() &&
       github.event.pull_request.draft == false &&
@@ -83,12 +84,16 @@ jobs:
       (
       github.event_name == 'pull_request' &&
       needs.RunE2E.result == 'success' &&
+      needs.LintAndUnitTests.result == 'success' &&
       github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'ready') == true
       ) ||
       (
       github.event_name == 'pull_request' &&
-      needs.RunE2E.result == 'skipped' &&
+      needs.RunE2E.result != 'canceled' &&
+      needs.RunE2E.result != 'failure' &&
+      needs.LintAndUnitTests.result != 'canceled' &&
+      needs.LintAndUnitTests.result != 'failure' &&
       github.event.action == 'labeled' &&
       github.event.label.name == 'ready'
       )
